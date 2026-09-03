@@ -8,7 +8,7 @@
  *（store/db/misc），本文件负责创建窗口、加载前端页面以及翻译引擎的
  * 代理调用（百度翻译签名/请求/错误码映射在主进程完成，密钥不下发渲染层）。
  */
-const { app, BrowserWindow, Menu, ipcMain, shell, Notification } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, shell, Notification, safeStorage } = require('electron');
 const path = require('path');
 const { doBaiduTranslate } = require('./engines/baidu');
 
@@ -43,10 +43,86 @@ function getWinStateStore() {
     return store.getStore(global.__CANBOX_ENV__.appId, 'winState', usersDataPath());
 }
 
+// ---------------------------------------------------------------------------
+// 百度凭据加密存储（safeStorage 自实现，不依赖 canbox-core 公共服务）
+//
+// 存储位置仍为 {Users}/data/{appId}/store/settings.json 的 baidu 节点，但落盘
+// 前使用 Electron safeStorage（Windows DPAPI / macOS Keychain / Linux libsecret）
+// 将 appid+secret 整体加密。settings.json 中只出现密文字符串，不再有明文凭据。
+//
+// settings.json baidu 节点两种形态：
+//   - 加密态: { "encrypted": true,  "enc": "enc:v1:<base64>" }
+//              enc 内容 = safeStorage.encryptString(JSON.stringify({appid, secret}))
+//   - 降级明文（OS 无可用加密后端）: { "encrypted": false, "appid": "...", "secret": "..." }
+//
+// 兼容旧版本明文结构 {appid, secret}：读取时若 OS 支持加密则自动迁移为密文。
+// 若系统加密能力后续可用（如 Linux 补齐 keyring），降级明文也会在读取时被迁移。
+// ---------------------------------------------------------------------------
+const CRED_ENC_PREFIX = 'enc:v1:';
+
+function isEncryptionAvailable() {
+    try {
+        return safeStorage.isEncryptionAvailable();
+    } catch (error) {
+        return false;
+    }
+}
+
+// 编码一份凭据（appid+secret → 存储节点）
+function encodeCredentials(appid, secret) {
+    if (isEncryptionAvailable()) {
+        const plain = JSON.stringify({ appid, secret });
+        const enc = safeStorage.encryptString(plain).toString('base64');
+        return { encrypted: true, enc: CRED_ENC_PREFIX + enc };
+    }
+    // 系统不支持安全存储：降级明文并标记 encrypted=false
+    return { encrypted: false, appid, secret };
+}
+
+// 解码 settings 中 baidu 节点 → 明文凭据
+// 返回 { ok, code, appid, secret, encrypted }
+//   code: 'OK'（可用）| 'EMPTY'（未配置）| 'DECRYPT'（密文解密失败，需重新配置）
+function decodeCredentials(cfg) {
+    if (!cfg || typeof cfg !== 'object') {
+        return { ok: false, code: 'EMPTY', appid: '', secret: '', encrypted: isEncryptionAvailable() };
+    }
+
+    // 加密态
+    if (cfg.enc && typeof cfg.enc === 'string' && cfg.enc.startsWith(CRED_ENC_PREFIX)) {
+        try {
+            const b64 = cfg.enc.slice(CRED_ENC_PREFIX.length);
+            const plain = safeStorage.decryptString(Buffer.from(b64, 'base64'));
+            const parsed = JSON.parse(plain);
+            return { ok: true, code: 'OK', appid: parsed.appid || '', secret: parsed.secret || '', encrypted: true };
+        } catch (error) {
+            console.error('[cb-translate] 凭据解密失败:', error.message);
+            return { ok: false, code: 'DECRYPT', appid: '', secret: '', encrypted: true };
+        }
+    }
+
+    // 旧明文 / 降级明文 {appid, secret}
+    const appid = cfg.appid || '';
+    const secret = cfg.secret || '';
+    if (appid || secret) {
+        if (isEncryptionAvailable()) {
+            // 自动迁移：明文 → 密文（写回）
+            try {
+                getSettingsStore().set('baidu', encodeCredentials(appid, secret));
+                return { ok: true, code: 'OK', appid, secret, encrypted: true };
+            } catch (error) {
+                console.error('[cb-translate] 凭据迁移失败:', error.message);
+                return { ok: true, code: 'OK', appid, secret, encrypted: false };
+            }
+        }
+        return { ok: true, code: 'OK', appid, secret, encrypted: false };
+    }
+    return { ok: false, code: 'EMPTY', appid: '', secret: '', encrypted: isEncryptionAvailable() };
+}
+
 function getBaiduConfig() {
     const s = getSettingsStore();
     const cfg = s.get('baidu') || {};
-    return { appid: cfg.appid || '', secret: cfg.secret || '' };
+    return decodeCredentials(cfg);
 }
 
 function getPrefs() {
@@ -71,36 +147,43 @@ ipcMain.handle('translate.doTranslate', async (_e, { q, from, to }) => {
 
 // 当前是否已配置百度密钥（不返回 secret；appid 脱敏展示）
 ipcMain.handle('translate.getBaiduStatus', () => {
-    const { appid, secret } = getBaiduConfig();
+    const cred = getBaiduConfig();
+    const configured = cred.ok && Boolean(cred.appid && cred.secret);
     return {
-        configured: Boolean(appid && secret),
-        appid: maskAppid(appid)
+        configured,
+        decryptFailed: cred.code === 'DECRYPT',
+        appid: maskAppid(cred.appid),
+        encrypted: cred.encrypted
     };
 });
 
 // 保存百度密钥（支持部分更新：只传 appid 或只传 secret）
 ipcMain.handle('translate.saveBaidu', (_e, payload) => {
     const current = getBaiduConfig();
+    const base = current.ok ? current : { appid: '', secret: '' };
     const cleaned = {
-        appid: (payload.appid !== undefined ? String(payload.appid) : current.appid).trim(),
-        secret: (payload.secret !== undefined ? String(payload.secret) : current.secret).trim()
+        appid: (payload.appid !== undefined ? String(payload.appid) : base.appid).trim(),
+        secret: (payload.secret !== undefined ? String(payload.secret) : base.secret).trim()
     };
     if (!cleaned.appid || !cleaned.secret) {
         return { success: false, msg: 'appid 与密钥均需配置，请补全后再保存' };
     }
-    getSettingsStore().set('baidu', cleaned);
-    return { success: true };
+    getSettingsStore().set('baidu', encodeCredentials(cleaned.appid, cleaned.secret));
+    return { success: true, encrypted: isEncryptionAvailable() };
 });
 
 // 读取偏好（不含密钥）
 ipcMain.handle('translate.getSettings', () => {
     const prefs = getPrefs();
-    const { appid, secret } = getBaiduConfig();
+    const cred = getBaiduConfig();
+    const configured = cred.ok && Boolean(cred.appid && cred.secret);
     return {
         prefs,
         baidu: {
-            configured: Boolean(appid && secret),
-            appid: maskAppid(appid)
+            configured,
+            decryptFailed: cred.code === 'DECRYPT',
+            appid: maskAppid(cred.appid),
+            encrypted: cred.encrypted
         }
     };
 });
