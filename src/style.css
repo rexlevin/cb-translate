@@ -1,0 +1,69 @@
+:root {
+    /* 主题色：灵译 - 蓝紫渐变基调 */
+    --app-primary: #5b6ef5;
+    --app-primary-light: #7d8cfa;
+    --app-primary-dark: #4355e0;
+    --app-bg: #f6f7fb;
+    --app-panel: #ffffff;
+    --app-text: #1f2329;
+    --app-text-secondary: #6b7280;
+    --app-border: #e5e7eb;
+    --app-hover: #f0f2f8;
+    --app-success: #34b37e;
+
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+        'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--app-text);
+    -webkit-font-smoothing: antialiased;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+body {
+    background: var(--app-bg);
+    user-select: none;
+}
+
+/* 允许文本区域选择 */
+textarea,
+input {
+    user-select: text;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.18);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Element Plus 主题微调 */
+.el-button--primary {
+    --el-button-bg-color: var(--app-primary);
+    --el-button-border-color: var(--app-primary);
+    --el-button-hover-bg-color: var(--app-primary-light);
+    --el-button-hover-border-color: var(--app-primary-light);
+    --el-button-active-bg-color: var(--app-primary-dark);
+    --el-button-active-border-color: var(--app-primary-dark);
+}

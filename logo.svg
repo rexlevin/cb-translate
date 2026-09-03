@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+    <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#7d8cfa"/>
+            <stop offset="1" stop-color="#4355e0"/>
+        </linearGradient>
+        <linearGradient id="badge" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#8fa1ff"/>
+            <stop offset="1" stop-color="#4355e0"/>
+        </linearGradient>
+    </defs>
+
+    <!-- 背景：圆角渐变方块 -->
+    <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#bg)"/>
+
+    <!-- 装饰光斑 -->
+    <circle cx="402" cy="108" r="56" fill="#ffffff" opacity="0.08"/>
+    <circle cx="92" cy="424" r="72" fill="#ffffff" opacity="0.07"/>
+    <circle cx="428" cy="420" r="20" fill="#ffffff" opacity="0.12"/>
+
+    <!-- 对话气泡 -->
+    <g transform="translate(236,250)">
+        <!-- 气泡主体 -->
+        <rect x="-128" y="-102" width="256" height="204" rx="38" fill="#ffffff"/>
+        <!-- 气泡尾巴（左下） -->
+        <path d="M-84 98 L-96 168 L-20 102 Z" fill="#ffffff"/>
+        <!-- 气泡内语块线条：从左到右的原文行 -->
+        <rect x="-92" y="-58" width="128" height="16" rx="8" fill="#4355e0" opacity="0.16"/>
+        <rect x="-92" y="-22" width="176" height="16" rx="8" fill="#4355e0" opacity="0.4"/>
+        <rect x="-92" y="14" width="92" height="16" rx="8" fill="#4355e0" opacity="0.62"/>
+        <!-- 右侧三角强调（译为方向感） -->
+        <path d="M96 -60 L128 -30 L96 -30 Z" fill="#4355e0" opacity="0.5"/>
+    </g>
+
+    <!-- 语言互换徽章（右上角） -->
+    <g transform="translate(372,120)">
+        <circle r="48" fill="url(#badge)" stroke="#ffffff" stroke-width="7"/>
+        <!-- 上箭头（向右） -->
+        <path d="M-18 -8 H16" stroke="#ffffff" stroke-width="6" stroke-linecap="round" fill="none"/>
+        <path d="M6 -18 L20 -8 L6 2 Z" fill="#ffffff"/>
+        <!-- 下箭头（向左） -->
+        <path d="M18 8 H-16" stroke="#ffffff" stroke-width="6" stroke-linecap="round" fill="none"/>
+        <path d="M-6 -2 L-20 8 L-6 18 Z" fill="#ffffff"/>
+    </g>
+</svg>

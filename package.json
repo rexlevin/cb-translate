@@ -1,0 +1,56 @@
+{
+    "name": "cb-translate",
+    "id": "com.github.rexlevin.cb-translate",
+    "private": true,
+    "version": "0.1.0",
+    "description": "灵译 - 轻量桌面翻译工具",
+    "author": "rexlevin",
+    "license": "Apache-2.0",
+    "homepage": "https://github.com/rexlevin/cb-translate",
+    "main": "main.js",
+    "logo": "public/logo.png",
+    "keywords": [
+        "translate",
+        "translation",
+        "baidu",
+        "utility"
+    ],
+    "scripts": {
+        "dev": "vite --port 5180",
+        "build": "vite build",
+        "preview": "vite preview",
+        "dist": "electron-builder --linux dir",
+        "start": "cross-env NODE_ENV=development electron -r ../canbox-core/injection.js . --app-id=cb-translate --no-sandbox"
+    },
+    "dependencies": {
+        "@element-plus/icons-vue": "^2.3.2",
+        "element-plus": "^2.13.1",
+        "vue": "^3.5.17"
+    },
+    "devDependencies": {
+        "@vitejs/plugin-vue": "^6.0.0",
+        "cross-env": "^10.1.0",
+        "electron": "42.5.1",
+        "electron-builder": "^26.0.12",
+        "vite": "^7.0.0"
+    },
+    "build": {
+        "appId": "com.github.rexlevin.cb-translate",
+        "directories": {
+            "output": "dist"
+        },
+        "files": [
+            "main.js",
+            "preload.js",
+            "engines/**/*",
+            "build/**/*",
+            "public/**/*",
+            "package.json"
+        ],
+        "linux": {
+            "target": [
+                "dir"
+            ]
+        }
+    }
+}
