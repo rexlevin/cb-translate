@@ -1,6 +1,6 @@
 # 灵译 LingYi · cb-translate
 
-Lightweight desktop translation tool built on the [Canbox platform](https://rexlevin.github.io/canbox-pages/). Clean, focused UI for everyday translation — powered by the [Baidu Translate Open Platform](https://fanyi-api.baidu.com/) (bring your own free API key).
+Lightweight desktop translation tool built on the [Canbox platform](https://canbox-io.github.io/canbox-pages/). Clean, focused UI for everyday translation — powered by the [Baidu Translate Open Platform](https://fanyi-api.baidu.com/) (bring your own free API key).
 
 [中文文档](./README.md)
 

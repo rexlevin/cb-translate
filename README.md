@@ -1,6 +1,6 @@
 # 灵译 · cb-translate
 
-基于 [Canbox 平台](https://rexlevin.github.io/canbox-pages/) 的轻量桌面翻译工具。界面简洁、开箱即用，适合日常随手翻译——翻译引擎为[百度翻译开放平台](https://fanyi-api.baidu.com/)（使用你自己的免费 API 密钥）。
+基于 [Canbox 平台](https://canbox-io.github.io/canbox-pages/) 的轻量桌面翻译工具。界面简洁、开箱即用，适合日常随手翻译——翻译引擎为[百度翻译开放平台](https://fanyi-api.baidu.com/)（使用你自己的免费 API 密钥）。
 
 [English Documentation](./README_en.md)
 
