@@ -98,7 +98,7 @@ defineExpose({ focusInput })
 }
 
 .panel-title {
-    font-size: 13px;
+    font-size: calc(var(--app-font-ui) - 1px);
     font-weight: 600;
     color: var(--app-text-secondary);
 }
@@ -121,7 +121,7 @@ defineExpose({ focusInput })
     border: none;
     box-shadow: none;
     padding: 4px 2px;
-    font-size: 16px;
+    font-size: var(--app-font-text);
     line-height: 1.7;
     resize: none;
     background: transparent;
@@ -137,7 +137,7 @@ defineExpose({ focusInput })
 }
 
 .char-count {
-    font-size: 12px;
+    font-size: calc(var(--app-font-ui) - 2px);
     color: var(--app-text-secondary);
 }
 </style>

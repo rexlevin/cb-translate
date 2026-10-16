@@ -18,7 +18,11 @@ let mainWindow = null;
 const DEFAULT_PREFS = {
     defaultFrom: 'auto',
     defaultTo: 'zh',
-    historyMax: 200
+    historyMax: 200,
+    // 界面字号（px）：作用于 APP 整体 UI 文字
+    uiFontSize: 14,
+    // 原文/译文框字号（px）：作用于输入框与译文正文
+    textFontSize: 16
 };
 
 // ---------------------------------------------------------------------------

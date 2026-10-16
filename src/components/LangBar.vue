@@ -61,7 +61,7 @@ const emit = defineEmits(['update:from', 'update:to', 'swap'])
     margin-left: auto;
     padding: 2px 10px;
     border-radius: 999px;
-    font-size: 12px;
+    font-size: calc(var(--app-font-ui) - 2px);
     color: var(--app-primary-dark);
     background: rgba(91, 110, 245, 0.1);
     border: 1px solid rgba(91, 110, 245, 0.25);

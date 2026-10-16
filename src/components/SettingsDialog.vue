@@ -2,7 +2,7 @@
     <el-dialog
         :model-value="open"
         title="设置"
-        width="460px"
+        :width="dialogWidth"
         :append-to-body="true"
         @update:model-value="(v) => emit('update:open', v)"
     >
@@ -17,7 +17,7 @@
                 class="settings-tip"
             />
 
-            <el-form label-width="90px" class="settings-form">
+            <el-form :label-width="labelWidthSm" class="settings-form">
                 <el-form-item label="状态">
                     <div class="status-block">
                         <div class="status-line">
@@ -94,7 +94,7 @@
 
             <!-- 偏好 -->
             <el-divider content-position="left">翻译偏好</el-divider>
-            <el-form label-width="90px" class="settings-form">
+            <el-form :label-width="labelWidthSm" class="settings-form">
                 <el-form-item label="默认目标语">
                     <el-select v-model="form.defaultTo" style="width: 100%">
                         <el-option v-for="l in TARGET_LANGS" :key="l.code" :label="l.name" :value="l.code" />
@@ -111,6 +111,49 @@
                     />
                 </el-form-item>
             </el-form>
+
+            <!-- 外观 -->
+            <el-divider content-position="left">外观</el-divider>
+            <el-form :label-width="labelWidthLg" class="settings-form">
+                <el-form-item label="界面字号">
+                    <div class="size-row">
+                        <el-input-number
+                            :model-value="form.uiFontSize"
+                            :min="12"
+                            :max="20"
+                            :step="1"
+                            controls-position="right"
+                            @change="(v) => onFontChange('uiFontSize', v)"
+                        />
+                        <span class="unit">px</span>
+                    </div>
+                </el-form-item>
+
+                <el-form-item label="原文/译文框字号">
+                    <div class="size-row">
+                        <el-input-number
+                            :model-value="form.textFontSize"
+                            :min="12"
+                            :max="32"
+                            :step="1"
+                            controls-position="right"
+                            @change="(v) => onFontChange('textFontSize', v)"
+                        />
+                        <span class="unit">px</span>
+                    </div>
+                </el-form-item>
+            </el-form>
+
+            <!-- 快捷键 -->
+            <el-divider content-position="left">快捷键</el-divider>
+            <ul class="shortcut-list">
+                <li v-for="s in SHORTCUTS" :key="s.desc">
+                    <span class="keys">
+                        <kbd v-for="(k, i) in s.keys" :key="k + i">{{ k }}</kbd>
+                    </span>
+                    <span class="desc">{{ s.desc }}</span>
+                </li>
+            </ul>
         </div>
 
         <template #footer>
@@ -130,15 +173,29 @@ import { TARGET_LANGS } from '../lib/langs'
 const props = defineProps({
     open: { type: Boolean, default: false },
     baiduStatus: { type: Object, default: () => ({ configured: false, appid: '', encrypted: true, decryptFailed: false }) },
-    prefs: { type: Object, default: () => ({ defaultTo: 'zh', historyMax: 200 }) }
+    prefs: { type: Object, default: () => ({ defaultTo: 'zh', historyMax: 200, uiFontSize: 14, textFontSize: 16 }) }
 })
-const emit = defineEmits(['update:open', 'save'])
+const emit = defineEmits(['update:open', 'save', 'font-change'])
+
+// 已实现的快捷键清单（与 App.vue 中的实际监听保持同步）
+const SHORTCUTS = [
+    { keys: ['Ctrl', ','], desc: '打开设置' },
+    { keys: ['Esc'], desc: '关闭设置' },
+    { keys: ['Ctrl', '滚轮'], desc: '缩放界面' },
+    { keys: ['Ctrl', '='], desc: '放大界面' },
+    { keys: ['Ctrl', '-'], desc: '缩小界面' },
+    { keys: ['Ctrl', '0'], desc: '界面缩放重置为 100%' },
+    { keys: ['Ctrl', '1'], desc: '聚焦原文输入框' },
+    { keys: ['Ctrl', 'Enter'], desc: '翻译' }
+]
 
 const form = ref({
     appid: '',
     secret: '',
     defaultTo: 'zh',
-    historyMax: 200
+    historyMax: 200,
+    uiFontSize: 14,
+    textFontSize: 16
 })
 
 const saving = ref(false)
@@ -157,6 +214,48 @@ const statusTagType = computed(() => {
     return isConfigured.value ? 'success' : 'warning'
 })
 
+// 弹层随"界面字号"等比放大：宽度与 label 宽度同步缩放，避免大字号下排版错乱
+// （基准 14px 时：弹层 460px、label 90/120px，并以视口宽度 92vw 兜底）
+const fontRatio = computed(() => (Number(form.value.uiFontSize) || 14) / 14)
+const dialogWidth = computed(() => `min(${Math.round(460 * fontRatio.value)}px, 92vw)`)
+const labelWidthSm = computed(() => `${Math.round(90 * fontRatio.value)}px`)
+const labelWidthLg = computed(() => `${Math.round(120 * fontRatio.value)}px`)
+
+// 当前完整偏好（saveSettings 为整对象覆盖，必须提交全部字段）
+function currentPrefs() {
+    return {
+        defaultTo: form.value.defaultTo,
+        historyMax: form.value.historyMax,
+        uiFontSize: form.value.uiFontSize,
+        textFontSize: form.value.textFontSize
+    }
+}
+
+// 字号即时保存：以"已保存偏好"为基准只覆盖字号，避免顺带提交尚未保存的其他字段
+function prefsWithFonts() {
+    return {
+        ...props.prefs,
+        uiFontSize: form.value.uiFontSize,
+        textFontSize: form.value.textFontSize
+    }
+}
+
+// 字号调整：变更即保存并生效，无需点"保存"，也不受百度凭据状态影响
+async function onFontChange(key, val) {
+    if (val === undefined || val === null || val === '') return
+    form.value[key] = Number(val)
+    try {
+        const res = await window.translate.saveSettings(prefsWithFonts())
+        if (res && res.success) {
+            emit('font-change', res.prefs)
+        } else {
+            ElMessage.error((res && res.msg) || '保存字号失败')
+        }
+    } catch (e) {
+        ElMessage.error('保存字号失败: ' + (e.message || e))
+    }
+}
+
 watch(() => props.open, (val) => {
     if (val) {
         editing.value = false
@@ -164,7 +263,9 @@ watch(() => props.open, (val) => {
             appid: '',
             secret: '',
             defaultTo: props.prefs.defaultTo || 'zh',
-            historyMax: props.prefs.historyMax || 200
+            historyMax: props.prefs.historyMax || 200,
+            uiFontSize: props.prefs.uiFontSize || 14,
+            textFontSize: props.prefs.textFontSize || 16
         }
     }
 })
@@ -187,34 +288,35 @@ function openRegister() {
 async function save() {
     saving.value = true
     try {
-        const payload = {
-            appid: form.value.appid.trim(),
-            secret: form.value.secret.trim(),
-            defaultTo: form.value.defaultTo,
-            historyMax: form.value.historyMax
-        }
-
-        // 需要写凭据的场景：未配置首次配置 / 已配置进入修改模式
-        const needCreds = !isConfigured.value || editing.value
+        // 凭据仅在"用户实际填写了 APP ID 或密钥"时才校验并保存；
+        // 未填写时只保存偏好（字号/默认目标语/历史上限），不因缺少凭据而拦截保存
         const baiduPayload = {}
+        const enteredAppid = form.value.appid.trim()
+        const enteredSecret = form.value.secret.trim()
 
-        if (needCreds) {
-            // 解密失败：后端无可合并的旧值，必须两者都填
-            if (props.baiduStatus.decryptFailed) {
-                if (!payload.appid || !payload.secret) {
+        if (props.baiduStatus.decryptFailed) {
+            // 解密失败：旧值不可用，填写则必须两者齐全
+            if (enteredAppid || enteredSecret) {
+                if (!enteredAppid || !enteredSecret) {
                     ElMessage.error('密钥无法解密，请完整输入新的 APP ID 与密钥')
                     return
                 }
-                baiduPayload.appid = payload.appid
-                baiduPayload.secret = payload.secret
+                baiduPayload.appid = enteredAppid
+                baiduPayload.secret = enteredSecret
+            }
+        } else if (enteredAppid || enteredSecret) {
+            if (isConfigured.value) {
+                // 已配置：留空表示保持不变，支持部分更新
+                if (enteredAppid) baiduPayload.appid = enteredAppid
+                if (enteredSecret) baiduPayload.secret = enteredSecret
             } else {
-                // 部分更新：留空表示保持不变
-                if (payload.appid) baiduPayload.appid = payload.appid
-                if (payload.secret) baiduPayload.secret = payload.secret
-                if (!isConfigured.value && (!baiduPayload.appid || !baiduPayload.secret)) {
+                // 首次配置：必须两者齐全
+                if (!enteredAppid || !enteredSecret) {
                     ElMessage.error('请完整输入 APP ID 与密钥')
                     return
                 }
+                baiduPayload.appid = enteredAppid
+                baiduPayload.secret = enteredSecret
             }
         }
 
@@ -226,10 +328,7 @@ async function save() {
             }
         }
 
-        const prefsRes = await window.translate.saveSettings({
-            defaultTo: payload.defaultTo,
-            historyMax: payload.historyMax
-        })
+        const prefsRes = await window.translate.saveSettings(currentPrefs())
         if (!prefsRes.success) {
             ElMessage.error(prefsRes.msg || '保存偏好失败')
             return
@@ -269,6 +368,7 @@ async function save() {
 .status-line {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
 }
 
@@ -277,12 +377,12 @@ async function save() {
 }
 
 .appid-mask {
-    font-size: 12px;
+    font-size: calc(var(--app-font-ui) - 2px);
     color: var(--app-text-secondary);
 }
 
 .enc-note {
-    font-size: 12px;
+    font-size: calc(var(--app-font-ui) - 2px);
     line-height: 1.5;
     border-radius: 6px;
     padding: 4px 8px;
@@ -296,5 +396,71 @@ async function save() {
 .enc-note.warn {
     color: #c46b2b;
     background: rgba(230, 162, 60, 0.12);
+}
+
+.size-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.size-row .unit {
+    font-size: calc(var(--app-font-ui) - 2px);
+    color: var(--app-text-secondary);
+}
+
+.shortcut-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 2px;
+}
+
+.shortcut-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    padding: 6px 0;
+    font-size: calc(var(--app-font-ui) - 1px);
+    color: var(--app-text);
+    border-bottom: 1px dashed var(--app-border);
+}
+
+.shortcut-list li:last-child {
+    border-bottom: none;
+}
+
+.shortcut-list .keys {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: none;
+}
+
+.shortcut-list kbd {
+    display: inline-block;
+    min-width: 20px;
+    padding: 1px 6px;
+    font-family: inherit;
+    font-size: calc(var(--app-font-ui) - 2px);
+    text-align: center;
+    color: var(--app-text-secondary);
+    background: var(--app-hover);
+    border: 1px solid var(--app-border);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+}
+
+.shortcut-list .desc {
+    color: var(--app-text-secondary);
+    text-align: right;
+    word-break: break-word;
+}
+
+/* 弹层标题随"界面字号"缩放，保持整体一致 */
+:deep(.el-dialog__title) {
+    font-size: calc(var(--app-font-ui) + 3px);
 }
 </style>

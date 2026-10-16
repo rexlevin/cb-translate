@@ -88,7 +88,7 @@ async function copyResult() {
 }
 
 .panel-title {
-    font-size: 13px;
+    font-size: calc(var(--app-font-ui) - 1px);
     font-weight: 600;
     color: var(--app-text-secondary);
 }
@@ -100,7 +100,7 @@ async function copyResult() {
 }
 
 .detected-tag {
-    font-size: 12px;
+    font-size: calc(var(--app-font-ui) - 2px);
     color: var(--app-success);
 }
 
@@ -113,7 +113,7 @@ async function copyResult() {
     justify-content: center;
     gap: 10px;
     color: var(--app-text-secondary);
-    font-size: 13px;
+    font-size: calc(var(--app-font-ui) - 1px);
 }
 
 .error-state {
@@ -138,7 +138,7 @@ async function copyResult() {
 
 .result-item {
     margin: 0 0 8px;
-    font-size: 16px;
+    font-size: var(--app-font-text);
     line-height: 1.8;
     word-break: break-word;
     user-select: text;

@@ -83,7 +83,7 @@ function confirmClear() {
 }
 
 .count-tip {
-    font-size: 12px;
+    font-size: calc(var(--app-font-ui) - 2px);
     color: var(--app-text-secondary);
 }
 
@@ -95,7 +95,7 @@ function confirmClear() {
     justify-content: center;
     gap: 8px;
     color: var(--app-text-secondary);
-    font-size: 13px;
+    font-size: calc(var(--app-font-ui) - 1px);
 }
 
 .history-empty .el-icon {
@@ -131,7 +131,7 @@ function confirmClear() {
 }
 
 .history-text {
-    font-size: 13px;
+    font-size: calc(var(--app-font-ui) - 1px);
     color: var(--app-text);
     word-break: break-word;
     display: -webkit-box;
@@ -152,7 +152,7 @@ function confirmClear() {
     align-items: center;
     justify-content: space-between;
     margin-top: 6px;
-    font-size: 12px;
+    font-size: calc(var(--app-font-ui) - 2px);
     color: var(--app-text-secondary);
 }
 </style>

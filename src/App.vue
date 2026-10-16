@@ -71,6 +71,7 @@
             :baidu-status="baiduStatus"
             :prefs="prefs"
             @save="onSettingsSaved"
+            @font-change="onFontChanged"
         />
     </div>
 </template>
@@ -100,10 +101,15 @@ const historyOpen = ref(false)
 const settingsOpen = ref(false)
 const historyList = ref([])
 
-const prefs = ref({ defaultTo: 'zh', historyMax: 200 })
+const prefs = ref({ defaultTo: 'zh', historyMax: 200, uiFontSize: 14, textFontSize: 16 })
 const baiduStatus = ref({ configured: false, appid: '' })
 
 const sourceInputRef = ref(null)
+
+// 字号范围（与设置界面一致）
+const MIN_FONT = 12
+const MAX_UI_FONT = 20
+const MAX_TEXT_FONT = 32
 
 // 缩放
 const zoomLevel = ref(1)
@@ -121,6 +127,7 @@ onMounted(async () => {
         if (settings && settings.prefs) {
             prefs.value = settings.prefs
             if (prefs.value.defaultTo) to.value = prefs.value.defaultTo
+            applyFontSizes(prefs.value)
         }
         if (settings && settings.baidu) {
             baiduStatus.value = settings.baidu
@@ -287,8 +294,27 @@ async function onHistoryClear() {
 // ---------------------------------------------------------------
 // 设置
 // ---------------------------------------------------------------
+// 将字号写入 CSS 变量：--app-font-ui 影响整体界面，--app-font-text 影响原文/译文框；
+// 同步覆盖 --el-font-size-base 让 Element Plus 组件文字跟随界面字号
+function applyFontSizes(sizes = {}) {
+    const ui = Math.max(MIN_FONT, Math.min(MAX_UI_FONT, Number(sizes.uiFontSize) || 14))
+    const text = Math.max(MIN_FONT, Math.min(MAX_TEXT_FONT, Number(sizes.textFontSize) || 16))
+    const root = document.documentElement.style
+    root.setProperty('--app-font-ui', ui + 'px')
+    root.setProperty('--app-font-text', text + 'px')
+    root.setProperty('--el-font-size-base', ui + 'px')
+}
+
+// 字号即时保存回执：只同步偏好并应用字号，不做其他副作用
+function onFontChanged(newPrefs) {
+    if (newPrefs) prefs.value = newPrefs
+    applyFontSizes(prefs.value)
+}
+
+// 设置界面点击"保存"：同步偏好、字号、百度状态
 async function onSettingsSaved(newPrefs) {
     if (newPrefs) prefs.value = newPrefs
+    applyFontSizes(prefs.value)
     // 若保存了密钥，刷新百度状态
     try {
         const st = await window.translate.getBaiduStatus()
@@ -301,6 +327,12 @@ async function onSettingsSaved(newPrefs) {
 // 快捷键 / 缩放
 // ---------------------------------------------------------------
 function handleGlobalKeydown(e) {
+    // Ctrl+, 打开设置（用物理按键 code 判断，避免输入法/修饰键干扰）
+    if ((e.ctrlKey || e.metaKey) && e.code === 'Comma') {
+        e.preventDefault()
+        settingsOpen.value = true
+        return
+    }
     // Ctrl+1 聚焦输入
     if (e.ctrlKey && e.key === '1') {
         e.preventDefault()
@@ -376,7 +408,7 @@ function handleWheel(e) {
 }
 
 .brand-name {
-    font-size: 16px;
+    font-size: calc(var(--app-font-ui) + 2px);
     font-weight: 700;
     letter-spacing: 0.5px;
     background: linear-gradient(90deg, var(--app-primary), var(--app-primary-dark));
