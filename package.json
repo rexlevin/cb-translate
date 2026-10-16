@@ -2,7 +2,7 @@
     "name": "cb-translate",
     "id": "com.github.rexlevin.cb-translate",
     "private": true,
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "灵译 - 轻量桌面翻译工具",
     "author": "rexlevin",
     "license": "Apache-2.0",

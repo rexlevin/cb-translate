@@ -77,7 +77,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Clock, Setting } from '@element-plus/icons-vue'
 import LangBar from './components/LangBar.vue'
@@ -148,7 +148,19 @@ onMounted(async () => {
     // Ctrl+1 聚焦输入框
     document.addEventListener('keydown', handleGlobalKeydown)
     document.addEventListener('wheel', handleWheel, { passive: false })
+
+    // 启动即聚焦原文输入框，便于直接输入
+    focusSourceInput()
 })
+
+// 聚焦原文输入框（等待 DOM 就绪后执行一次）
+function focusSourceInput() {
+    nextTick(() => {
+        sourceInputRef.value?.focusInput()
+        // 部分环境下窗口获得焦点晚于挂载，补一次聚焦
+        setTimeout(() => sourceInputRef.value?.focusInput(), 120)
+    })
+}
 
 onBeforeUnmount(() => {
     document.removeEventListener('keydown', handleGlobalKeydown)
